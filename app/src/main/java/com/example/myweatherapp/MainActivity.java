@@ -1,0 +1,168 @@
+package com.example.myweatherapp;
+
+import android.app.SearchManager;
+import android.content.Context;
+import android.os.Bundle;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
+import android.util.Log;
+import android.view.View;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.SearchView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class MainActivity extends AppCompatActivity {
+
+    TextView citytxt;
+    ImageView pic;
+    TextView datetxt;
+    TextView temptxt;
+    TextView tmintxt;
+    TextView tmaxtxt;
+    TextView pressiontxt;
+    TextView humidtxt;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        System.out.println("hola");
+          setContentView(R.layout.activity_main);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+       pic = findViewById(R.id.picture);
+        pic.setImageResource(R.drawable.temperature);
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
+        SearchView searchView = (SearchView) menu.findItem(R.id.search).getActionView();
+        searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
+        final Context context = this;
+        citytxt = findViewById(R.id.city);
+        datetxt = findViewById(R.id.date);
+        temptxt = findViewById(R.id.temp);
+        tmintxt = findViewById(R.id.tmin);
+        tmaxtxt = findViewById(R.id.tmax);
+        pressiontxt = findViewById(R.id.pression);
+        humidtxt = findViewById(R.id.humid);
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                citytxt.setText(query);
+                RequestQueue queue = Volley.newRequestQueue(getApplicationContext());
+                String url ="https://api.openweathermap.org/data/2.5/weather?q="+query+"&appid=209d3a2969998cf7ba3acdd092d496a4";
+                StringRequest stringRequest = new StringRequest(Request.Method.GET, url, new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            Log.i("MyLog", "=================");
+                            Log.i("MyLog", response);
+                            JSONObject jsonObject = new JSONObject(response);
+
+                            Date date = new Date(jsonObject.getLong("dt") * 1000);
+                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-MMM-yyy' 'HH:mm");
+                            String dateString = simpleDateFormat.format(date);
+                            JSONObject main = jsonObject.getJSONObject("main");
+                            int Temp = (int) (main.getDouble("temp") - 273.15);
+                            int TempMin = (int) (main.getDouble("temp_min") - 273.15);
+                            int TempMax = (int) (main.getDouble("temp_max") - 273.15);
+                            int Pression = (int) (main.getDouble("pressure"));
+                            int Humidite = (int) (main.getDouble("humidity"));
+
+                            JSONArray weather = jsonObject.getJSONArray("weather");
+                            String meteo = weather.getJSONObject(0).getString("main");
+                            datetxt.setText(dateString);
+                            temptxt.setText(String.valueOf(Temp + "°C"));
+                            tmintxt.setText(String.valueOf(TempMin + "°C"));
+                            tmaxtxt.setText(String.valueOf(TempMax + "°C"));
+                            pressiontxt.setText(String.valueOf(Pression + "hPa"));
+                            humidtxt.setText(String.valueOf(Humidite + "%"));
+                            Log.i("Weather", "===================");
+                            Log.i("Meteo", meteo);
+                            setImage(meteo);
+                            Toast.makeText(context, meteo, Toast.LENGTH_LONG).show();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                },
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                Log.i("MyLog", "=======Connection problem=======");
+                            }
+                        });
+
+
+                        queue.add(stringRequest);
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+
+     return true;
+    }
+
+    public void setImage(String s){
+        ImageView imageView = findViewById(R.id.picture);
+        if(s.equals("Rain")){
+            imageView.setImageResource(R.drawable.rain);
+        }
+        if(s.equals("Clear")){
+            imageView.setImageResource(R.drawable.sun);
+        }
+        if(s.equals("Clouds")){
+            imageView.setImageResource(R.drawable.cloudy);
+        }
+        if(s.equals("Thunderstorm")){
+            imageView.setImageResource(R.drawable.storm);
+        }
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+}
